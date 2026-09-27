@@ -6,7 +6,6 @@ whichever token runs this. Needs GITHUB_TOKEN (or GH_TOKEN) in the environment.
 
 import json
 import os
-import urllib.parse
 import urllib.request
 from html import escape
 from pathlib import Path
@@ -17,7 +16,9 @@ OUT = Path(__file__).resolve().parent.parent / "assets"
 QUERY = """
 query($login: String!, $after: String) {
   user(login: $login) {
+    id
     followers { totalCount }
+    pullRequests(first: 100) { nodes { repository { isPrivate } } }
     repositories(first: 100, after: $after, ownerAffiliations: OWNER, privacy: PUBLIC, isFork: false) {
       pageInfo { hasNextPage endCursor }
       nodes {
@@ -35,15 +36,8 @@ query($login: String!, $after: String) {
 
 def request(url, payload=None):
     token = os.environ.get("GITHUB_TOKEN") or os.environ["GH_TOKEN"]
-    req = urllib.request.Request(
-        url,
-        data=json.dumps(payload).encode() if payload else None,
-        headers={
-            "Authorization": f"bearer {token}",
-            "Accept": "application/vnd.github+json",
-            "Content-Type": "application/json",
-        },
-    )
+    headers = {"Authorization": f"bearer {token}", "Content-Type": "application/json"}
+    req = urllib.request.Request(url, data=json.dumps(payload).encode() if payload else None, headers=headers)
     with urllib.request.urlopen(req) as resp:
         return json.load(resp)
 
@@ -55,11 +49,24 @@ def graphql(variables):
     return body["data"]["user"]
 
 
-def search_count(kind, q):
-    # The contribution graph undercounts this account, so commits and PRs
-    # come from search, which matches by author login.
-    url = f"https://api.github.com/search/{kind}?per_page=1&q=" + urllib.parse.quote(q)
-    return request(url)["total_count"]
+COMMITS_QUERY = """
+query($owner: String!, $name: String!, $author: ID!) {
+  repository(owner: $owner, name: $name) {
+    defaultBranchRef { target { ... on Commit { history(author: {id: $author}) { totalCount } } } }
+  }
+}
+"""
+
+
+def authored_commits(repo, user_id):
+    # This account's contribution graph and search results come back empty,
+    # so commits are counted straight from each repo's default branch.
+    body = request(
+        "https://api.github.com/graphql",
+        {"query": COMMITS_QUERY, "variables": {"owner": USER, "name": repo, "author": user_id}},
+    )
+    ref = body["data"]["repository"]["defaultBranchRef"]
+    return ref["target"]["history"]["totalCount"] if ref else 0
 
 
 def collect():
@@ -83,8 +90,8 @@ def collect():
         "repos": len(repos),
         "stars": sum(r["stargazerCount"] for r in repos),
         "followers": user["followers"]["totalCount"],
-        "commits": search_count("commits", f"author:{USER} is:public"),
-        "prs": search_count("issues", f"author:{USER} type:pr is:public"),
+        "commits": sum(authored_commits(r["name"], user["id"]) for r in repos),
+        "prs": sum(not pr["repository"]["isPrivate"] for pr in user["pullRequests"]["nodes"]),
         "langs": sorted(langs.items(), key=lambda kv: -kv[1]["size"]),
     }
 
