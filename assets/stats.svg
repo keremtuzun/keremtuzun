@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="200" viewBox="0 0 400 200" role="img" aria-label="GitHub activity">
+  <style>
+    .bg { fill: #ffffff; stroke: #d0d7de; }
+    .title { fill: #0969da; font: 600 17px 'Segoe UI', Ubuntu, sans-serif; }
+    .label { fill: #57606a; font: 400 13px 'Segoe UI', Ubuntu, sans-serif; }
+    .value { fill: #1f2328; font: 600 13px 'Segoe UI', Ubuntu, sans-serif; }
+    .foot { fill: #8c959f; font: 400 10px 'Segoe UI', Ubuntu, sans-serif; }
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #0d1117; stroke: #30363d; }
+      .title { fill: #58a6ff; }
+      .label { fill: #8b949e; }
+      .value { fill: #e6edf3; }
+      .foot { fill: #6e7681; }
+    }
+  </style>
+<rect class="bg" x="0.5" y="0.5" width="399" height="199" rx="6"/><text class="title" x="24" y="36">GitHub activity</text><text class="label" x="24" y="74">Public repositories</text><text class="value" x="376" y="74" text-anchor="end">17</text><text class="label" x="24" y="102">Commits</text><text class="value" x="376" y="102" text-anchor="end">485</text><text class="label" x="24" y="130">Pull requests</text><text class="value" x="376" y="130" text-anchor="end">25</text><text class="label" x="24" y="158">Languages used</text><text class="value" x="376" y="158" text-anchor="end">11</text><text class="foot" x="376" y="188" text-anchor="end">public repositories only</text></svg>
