@@ -18,12 +18,12 @@ query($login: String!, $after: String) {
   user(login: $login) {
     id
     followers { totalCount }
-    pullRequests(first: 100) { nodes { repository { isPrivate } } }
     repositories(first: 100, after: $after, ownerAffiliations: OWNER, privacy: PUBLIC, isFork: false) {
       pageInfo { hasNextPage endCursor }
       nodes {
         name
         stargazerCount
+        pullRequests { totalCount }
         languages(first: 10, orderBy: {field: SIZE, direction: DESC}) {
           edges { size node { name color } }
         }
@@ -91,7 +91,8 @@ def collect():
         "stars": sum(r["stargazerCount"] for r in repos),
         "followers": user["followers"]["totalCount"],
         "commits": sum(authored_commits(r["name"], user["id"]) for r in repos),
-        "prs": sum(not pr["repository"]["isPrivate"] for pr in user["pullRequests"]["nodes"]),
+        # Counted per repo: the Actions token cannot list this user's own PRs.
+        "prs": sum(r["pullRequests"]["totalCount"] for r in repos),
         "langs": sorted(langs.items(), key=lambda kv: -kv[1]["size"]),
     }
 
@@ -131,7 +132,7 @@ def stats_svg(s):
     rows = [
         ("Public repositories", s["repos"]),
         ("Commits", s["commits"]),
-        ("Pull requests", s["prs"]),
+        ("Pull requests in my repos", s["prs"]),
         ("Languages used", len(s["langs"])),
     ]
     body = "".join(
